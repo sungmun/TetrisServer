@@ -1,11 +1,14 @@
 package nothing.JavaWebSocketServer;
 
-import java.net.InetSocketAddress;
-import java.util.HashSet;
-
-import org.java_websocket.WebSocket;
-import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.server.WebSocketServer;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 import com.google.gson.Gson;
 
@@ -14,67 +17,90 @@ import Serversynchronization.SocketMessage;
 import Serversynchronization.User;
 import Serversynchronization.UsersList;
 
-/**
- * Hello world!
- *
- */
-public class Server extends WebSocketServer implements MessageType{
-	UsersList list=new UsersList();
-	public Server(InetSocketAddress address) {
-		super(address);
-	}
+public class Server implements MessageType, Runnable {
 
+	public static final int ServerPort = 8000;
+	public static final String ServerIP = "localhost";
+	Socket client;
+	PrintWriter out;
+	BufferedReader in;
 	@Override
-	public void onOpen(WebSocket conn, ClientHandshake handshake) {
-		System.out.println("new connection to " + conn.getRemoteSocketAddress());
-	}
+	public void run() {
 
-	@Override
-	public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-		System.out.println("closed " + conn.getRemoteSocketAddress() + " with exit code " + code + " additional info: " + reason);
-	}
+		try {
+			System.out.println("S: Connecting...");
+			ServerSocket serverSocket = new ServerSocket(ServerPort);
 
-	@Override
-	public void onMessage(WebSocket conn, String message) {
-		SocketMessage msg=new Gson().fromJson(message, SocketMessage.class);
-		switch (msg.getMessageType()) {
-		case MAP_MESSAGE:
-			
-			break;
-		case USER_LIST_MESSAGE:
-			UsersList.setList((HashSet<User>) SocketMessage.transformJSON(msg.getMessage()));
-			break;
-		case WAITING_ROOM_CONNECT:
-			list.add((User) SocketMessage.transformJSON(msg.getMessage()));
-			break;
-		case USER_SELECTING:
-			User user=(User) SocketMessage.transformJSON(msg.getMessage());
-		
-			break;
-		case GAMEOVER_MESSAGE:
-			
-			break;
-		default:
-			break;
+			while (true) {
+				Socket client = serverSocket.accept();
+				
+				System.out.println("S: Receiving...");
+				try {
+					BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+					onMessage(client);
+
+				} catch (Exception e) {
+					System.out.println("S: Error");
+					e.printStackTrace();
+				} finally {
+					System.out.println("S: Done.");
+					client.close();
+				}
+			}
+		} catch (Exception e) {
+			System.out.println("S: Error");
+			e.printStackTrace();
 		}
 	}
 
-	@Override
-	public void onError(WebSocket conn, Exception ex) {
-		System.err.println("an error occured on connection " + conn.getRemoteSocketAddress()  + ":" + ex);
-	}
-	
-	@Override
-	public void onStart() {
-		System.out.println("server started successfully");
+	public void send(Object message,Socket socket) {
+		String msg=new Gson().toJson(message);
+		try {
+			out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+			out.write(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
+	public void onMessage(Socket client) {
+		try {
+			BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+
+			SocketMessage message = new Gson().fromJson(in.readLine(),SocketMessage.class);
+			switch (message.getMessageType()) {
+			case LOGIN:
+				User user=(User)message.transformJSON();
+				user.setSocket(client);
+				UsersList.add(user);
+				SocketMessage socket=new SocketMessage(USER_LIST_MESSAGE, UsersList.getList());
+				send(socket,client);
+				break;
+			case LOGOUT:
+				User user1=(User)message.transformJSON();
+				UsersList.delete(user1);
+				break;
+			case USER_SELECTING:
+				
+			case BE_CHOSEN:
+				
+				break;
+
+			default:
+				break;
+			}
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	public static void main(String[] args) {
-		String host = "localhost";
-		int port = 8887;
 
-		WebSocketServer server = new Server(new InetSocketAddress(host, port));
-		server.run();
+		Thread desktopServerThread = new Thread(new Server());
+		desktopServerThread.start();
+
 	}
+
 }

@@ -1,22 +1,45 @@
 package Serversynchronization;
 
 import java.util.HashSet;
+import java.util.Vector;
 
 public class UsersList {
-	private static HashSet<User> list = new HashSet<User>();
+	private static Vector<User> list = new Vector<User>();
 
-	public void add(User user) {
-		list.add(user);
-	}
-	public void delete(User user) {
-		list.remove(user);
-	}
-	public static HashSet<User> getList() {
-		return list;
+	private static Object key = new Object();
+
+	public static boolean add(User user) {
+		synchronized (key) {
+			return list.add(user);
+		}
+
 	}
 
-	public static void setList(HashSet<User> list) {
+	public static void delete(User user) {
+		synchronized (key) {
+			list.remove(user);
+		}
+	}
+
+	public static Vector<User> getList() {
+		synchronized (key) {
+			return list;
+		}
+	}
+
+	public static void setList(Vector<User> list) {
 		UsersList.list = list;
+	}
+
+	public static boolean findList(User user) {
+		synchronized (key) {
+			if (list.add(user)) {
+				UsersList.delete(user);
+				return false;
+			} else {
+				return false;
+			}
+		}
 	}
 
 }

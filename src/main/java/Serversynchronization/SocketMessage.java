@@ -40,8 +40,8 @@ public class SocketMessage {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Object transformJSON(String json) {
-		return new Gson().fromJson(json, objecttype);
+	public Object transformJSON() {
+		return new Gson().fromJson(message, objecttype);
 
 	}
 }
