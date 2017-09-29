@@ -5,17 +5,25 @@ public class User {
 	private String id;
 	private String name;
 
+	public User(String id, String name, Integer num) {
+		this.usernumber = num.intValue();
+		this.id = id;
+		this.name = name;
+	}
+
 	public User(String id, String name) {
 		this.id = id;
 		this.name = name;
 	}
-	
+
 	public void setUserNumber(Integer num) {
-		usernumber=num.intValue();
+		usernumber = num.intValue();
 	}
+
 	public Integer getUserNumber() {
 		return new Integer(usernumber);
 	}
+
 	public String getID() {
 		return id;
 	}

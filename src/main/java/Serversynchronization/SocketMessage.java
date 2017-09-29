@@ -10,7 +10,9 @@ public class SocketMessage {
 		messagetype = msg;
 		setMessage(obj);
 	}
-
+	public void changeMessageType(int type) {
+		messagetype=type;
+	}
 	public String getMessage() {
 		return message;
 	}

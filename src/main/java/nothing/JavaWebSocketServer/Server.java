@@ -48,17 +48,20 @@ public class Server extends Thread implements MessageType {
 				onMessage(list.get(client.getUserNumber()));
 			} catch (JsonSyntaxException | IOException e) {
 				close();
-				System.err.println(e.getMessage());
+				System.out.println(e.getMessage());
 				break;
 			}
 		}
 	}
 
 	private void close() {
+
 		try {
 			in.close();
 			out.close();
 			list.remove(client.getUserNumber());
+			UsersList.delete(client);// 메모리에서 유저 삭제
+			broadCast(new SocketMessage(LOGOUT, client));
 		} catch (IOException | ArrayIndexOutOfBoundsException e) {
 		}
 	}
@@ -70,7 +73,6 @@ public class Server extends Thread implements MessageType {
 		System.out.println("보내는 정보" + msg);
 		out.println(msg);
 		out.flush();
-	
 	}
 
 	public void loginEvent(SocketMessage message) throws IOException {
@@ -78,27 +80,21 @@ public class Server extends Thread implements MessageType {
 		user.setUserNumber(client.getUserNumber());
 		send(new SocketMessage(USER_SERIAL_NUM, user.getUserNumber()), list.get(user.getUserNumber()));
 		broadCast(new SocketMessage(LOGIN, user));// 다른유저에게 접속한 유저 정보 전달
-		System.out.println("Server.loginEvent(): 4");
 		send(new SocketMessage(USER_LIST_MESSAGE, UsersList.getList()), list.get(user.getUserNumber()));
-		System.out.println("Server.loginEvent(): 5");
 		// 접속한 유저에게 다른 유저 정보 전달
 		UsersList.add(user);// 접속한 유저의 정보 저장
 		client = user;
 	}
 
-	public void logoutEvent(SocketMessage message) throws IOException {
-
-		System.out.println("Server.logoutEvent()");
-		User user = new Gson().fromJson(message.getMessage(), User.class);
-		UsersList.delete(user);// 메모리에서 유저 삭제
-		broadCast(new SocketMessage(LOGOUT, user));// 다른 유저에게 로그아웃한 유저정보 전달
+	public void logoutEvent() throws IOException {
+		close();
 	}
 
 	public void userSelectingEvent(SocketMessage message) throws JsonSyntaxException, IOException {
 		System.out.println("Server.userSelectingEvent()");
 		User user = new Gson().fromJson(message.getMessage(), User.class);
 
-		message = new SocketMessage(BE_CHOSEN, message.getMessage());// 선택당한 유저의 정보를 객체로 저장
+		message.changeMessageType(BE_CHOSEN);
 
 		war_rooms.add(new WarRoom(client, user));
 		// user는 사용자의 정보이고, message.transformJSON()는 선택당한 유저이다
@@ -106,11 +102,14 @@ public class Server extends Thread implements MessageType {
 		// 선택당한 유저에게 선택을 당했다고 알려줌
 	}
 
-	public void warAcceptEvent() throws IOException {
+	public void warAcceptEvent(SocketMessage message) throws IOException {
 		System.out.println("Server.warAcceptEvent()");
-		channelMessage(new SocketMessage(WAR_ACCEPT, null));
+		warStartEvent();
+		channelMessage(message);
 	}
-
+	public void warStartEvent() throws IOException {
+		broadCast(new SocketMessage(WAR_START, client));
+	}
 	public void warDenialEvent() throws IOException {
 		System.out.println("Server.warDenialEvent()");
 		channelMessage(new SocketMessage(WAR_DENIAL, null));
@@ -121,6 +120,7 @@ public class Server extends Thread implements MessageType {
 		channelMessage(message);
 	}
 
+	@SuppressWarnings("unlikely-arg-type")
 	public void channelMessage(SocketMessage message) throws IOException {
 		System.out.println("Server.channelMessage()");
 		int index = war_rooms.indexOf(client);
@@ -130,7 +130,7 @@ public class Server extends Thread implements MessageType {
 	}
 
 	public void onMessage(Socket client) throws JsonSyntaxException, IOException {
-
+		System.out.println("Server.onMessage()");
 		SocketMessage message = new Gson().fromJson(in.readLine(), SocketMessage.class);
 		System.out.println(message.getMessage());
 		switch (message.getMessageType()) {
@@ -138,19 +138,25 @@ public class Server extends Thread implements MessageType {
 			loginEvent(message);
 			break;
 		case LOGOUT:
-			logoutEvent(message);
+			logoutEvent();
 			break;
 		case USER_SELECTING:// 사용자가 유저를 선택후 선택한유저 정보 전달
 			userSelectingEvent(message);
 			break;
 		case WAR_ACCEPT:// 선택 당한 유저의 응답 여부
-			warAcceptEvent();
+			warAcceptEvent(message);
 			break;
 		case WAR_DENIAL:// 선택 당한 유저의 응답 여부
 			warDenialEvent();
 			break;
 		case MAP_MESSAGE:// war_room으로 연결되 두 클라이언트 간의 데이터 전송
 			mapMessageEvent(message);
+			break;
+		case WAR_START:
+			warStartEvent();
+			break;
+		case CONNECT:
+			channelMessage(message);
 			break;
 		default:
 			break;
@@ -159,7 +165,7 @@ public class Server extends Thread implements MessageType {
 
 	public void broadCast(SocketMessage message) throws IOException {
 		System.out.println("Server.broadCast()");
-		Vector<User> list = UsersList.getList();
+		User[] list = UsersList.getList();
 		for (User user : list) {
 			send(message, Server.list.get(user.getUserNumber()));
 		}

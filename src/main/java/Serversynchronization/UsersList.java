@@ -1,12 +1,17 @@
 package Serversynchronization;
 
-import java.util.HashSet;
 import java.util.Vector;
 
 public class UsersList {
 	private static Vector<User> list = new Vector<User>();
 
 	private static Object key = new Object();
+
+	public static User[] getList() {
+		User[] arr = new User[list.size()];
+		arr = list.toArray(arr);
+		return arr;
+	}
 
 	public static boolean add(User user) {
 		synchronized (key) {
@@ -15,30 +20,22 @@ public class UsersList {
 
 	}
 
-	public static void delete(User user) {
+	public static boolean delete(User user) {
 		synchronized (key) {
-			list.remove(user);
+			return list.remove(user);
 		}
 	}
 
-	public static Vector<User> getList() {
-		synchronized (key) {
-			return list;
+	public static void setList(User[] list) {
+		UsersList.list.clear();
+		for (User user : list) {
+			UsersList.list.addElement(user);
 		}
-	}
-
-	public static void setList(Vector<User> list) {
-		UsersList.list = list;
 	}
 
 	public static boolean findList(User user) {
 		synchronized (key) {
-			if (list.add(user)) {
-				UsersList.delete(user);
-				return false;
-			} else {
-				return false;
-			}
+			return (list.indexOf(user)==-1)?false:true;
 		}
 	}
 

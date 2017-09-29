@@ -12,4 +12,7 @@ public interface MessageType {
 	int WAR_ACCEPT = 0xA;			// 대결 수락
 	int WAR_DENIAL = 0XB;			// 대결 거절
 	int USER_SERIAL_NUM = 0xC;		// 접속한 유저에게 당사자의 시리얼번호를 돌려준다.
+	int WAR_START=0xD;				// 대결시작
+	int WAR_END=0xE;				// 대결끝
+	int CONNECT=0xF;				// 연결
 }
