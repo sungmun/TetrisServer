@@ -20,10 +20,15 @@ public class WarRoom {
 			return null;
 		}
 	}
-
 	@Override
 	public boolean equals(Object obj) {
-		if (user1.equals(obj) || user2.equals(obj)) {
+		if(obj.getClass()==User.class) {
+			return equals((User)obj);
+		}
+		return super.equals(obj);
+	}
+	public boolean equals(User user) {
+		if (user1.equals(user) || user2.equals(user)) {
 			return true;
 		}
 		return false;

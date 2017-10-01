@@ -40,6 +40,17 @@ public class Server extends Thread implements MessageType {
 		list.put(num, socket);
 	}
 
+	public int searchindex(User user) {
+		int index = 0;
+		for (WarRoom warRoom : war_rooms) {
+			if (warRoom.equals(user)) {
+				return index;
+			}
+			index++;
+		}
+		return -1;
+	}
+
 	@Override
 	public void run() {
 
@@ -66,13 +77,18 @@ public class Server extends Thread implements MessageType {
 		}
 	}
 
-	public void send(Object message, Socket socket) throws IOException {
+	public void send(SocketMessage message, Socket socket) throws IOException {
 		out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-		System.out.println("Server.send()");
 		String msg = new Gson().toJson(message);
-		System.out.println("보내는 정보" + msg);
 		out.println(msg);
 		out.flush();
+	}
+
+	public void broadCast(SocketMessage message) throws IOException {
+		User[] list = UsersList.getList();
+		for (User user : list) {
+			send(message, Server.list.get(user.getUserNumber()));
+		}
 	}
 
 	public void loginEvent(SocketMessage message) throws IOException {
@@ -91,83 +107,76 @@ public class Server extends Thread implements MessageType {
 	}
 
 	public void userSelectingEvent(SocketMessage message) throws JsonSyntaxException, IOException {
-		System.out.println("Server.userSelectingEvent()");
 		User user = new Gson().fromJson(message.getMessage(), User.class);
 
 		message.changeMessageType(BE_CHOSEN);
 
 		war_rooms.add(new WarRoom(client, user));
 		// user는 사용자의 정보이고, message.transformJSON()는 선택당한 유저이다
-		send(message, list.get(user.getUserNumber()));
+		send(new SocketMessage(BE_CHOSEN, client),list.get(user.getUserNumber()) );
 		// 선택당한 유저에게 선택을 당했다고 알려줌
 	}
 
 	public void warAcceptEvent(SocketMessage message) throws IOException {
-		System.out.println("Server.warAcceptEvent()");
 		warStartEvent();
 		channelMessage(message);
 	}
+
 	public void warStartEvent() throws IOException {
 		broadCast(new SocketMessage(WAR_START, client));
 	}
+
 	public void warDenialEvent() throws IOException {
-		System.out.println("Server.warDenialEvent()");
 		channelMessage(new SocketMessage(WAR_DENIAL, null));
 	}
 
 	public void mapMessageEvent(SocketMessage message) throws IOException {
-		System.out.println("Server.mapMessageEvent()");
 		channelMessage(message);
 	}
 
-	@SuppressWarnings("unlikely-arg-type")
 	public void channelMessage(SocketMessage message) throws IOException {
-		System.out.println("Server.channelMessage()");
-		int index = war_rooms.indexOf(client);
+		int index = searchindex(client);
 		User user = war_rooms.get(index).opponentUser(client);
 
 		send(message, list.get(user.getUserNumber()));
 	}
 
 	public void onMessage(Socket client) throws JsonSyntaxException, IOException {
-		System.out.println("Server.onMessage()");
-		SocketMessage message = new Gson().fromJson(in.readLine(), SocketMessage.class);
-		System.out.println(message.getMessage());
-		switch (message.getMessageType()) {
-		case LOGIN:
-			loginEvent(message);
-			break;
-		case LOGOUT:
-			logoutEvent();
-			break;
-		case USER_SELECTING:// 사용자가 유저를 선택후 선택한유저 정보 전달
-			userSelectingEvent(message);
-			break;
-		case WAR_ACCEPT:// 선택 당한 유저의 응답 여부
-			warAcceptEvent(message);
-			break;
-		case WAR_DENIAL:// 선택 당한 유저의 응답 여부
-			warDenialEvent();
-			break;
-		case MAP_MESSAGE:// war_room으로 연결되 두 클라이언트 간의 데이터 전송
-			mapMessageEvent(message);
-			break;
-		case WAR_START:
-			warStartEvent();
-			break;
-		case CONNECT:
-			channelMessage(message);
-			break;
-		default:
-			break;
-		}
-	}
 
-	public void broadCast(SocketMessage message) throws IOException {
-		System.out.println("Server.broadCast()");
-		User[] list = UsersList.getList();
-		for (User user : list) {
-			send(message, Server.list.get(user.getUserNumber()));
+		SocketMessage message = new Gson().fromJson(in.readLine(), SocketMessage.class);
+		try {
+			switch (message.getMessageType()) {
+			case LOGIN:
+				loginEvent(message);
+				break;
+			case LOGOUT:
+				logoutEvent();
+				break;
+			case USER_SELECTING:// 사용자가 유저를 선택후 선택한유저 정보 전달
+				userSelectingEvent(message);
+				break;
+			case WAR_ACCEPT:// 선택 당한 유저의 응답 여부
+				warAcceptEvent(message);
+				break;
+			case WAR_DENIAL:// 선택 당한 유저의 응답 여부
+				warDenialEvent();
+				break;
+			case WAR_START:
+				warStartEvent();
+				break;
+			case SCORE_MESSAGE:
+			case LEVEL_MESSAGE:
+			case SAVE_BLOCK_MESSAGE:
+			case NEXT_BLOCK_MESSAGE:
+			case MAP_MESSAGE:
+			case USER_MESSAGE:
+				channelMessage(message);
+				break;
+			default:
+				break;
+			}
+		} catch (NullPointerException e) {
+			System.err.println(e.getMessage());
 		}
 	}
 

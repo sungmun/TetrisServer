@@ -36,9 +36,7 @@ public class User {
 		return name;
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		User user = (User) obj;
+	public boolean equals(User user) {
 		if (this.usernumber == user.usernumber) {
 			return true;
 		}
