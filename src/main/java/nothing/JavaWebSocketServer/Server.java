@@ -82,6 +82,7 @@ public class Server extends Thread implements MessageType {
 		String msg = new Gson().toJson(message);
 		out.println(msg);
 		out.flush();
+		System.gc();
 	}
 
 	public void broadCast(SocketMessage message) throws IOException {
