@@ -13,6 +13,7 @@ public interface MessageType {
 	int WAR_END              = 0x9;	// 대결끝
 	int LOGOUT               = 0xA;	// 로그아웃
 	int GAMEOVER_MESSAGE     = 0xB;	// 게임 종료
+	int RANK				 = 0xC; // 랭킹
 	
 	int USER_MESSAGE         = 0x10; 	// 유저의 정보
 	int MAP_MESSAGE          = 0x11; 	// 유저의 실시간 맵정보

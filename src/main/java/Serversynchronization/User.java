@@ -4,7 +4,12 @@ public class User {
 	private int usernumber;
 	private String id;
 	private String name;
-
+	private PlayerInformation info;
+	public User(String id, String name,int level,int score) {
+		this.id=id;
+		this.name=name;
+		info=new PlayerInformation(level, score);
+	}
 	public User(String id, String name, Integer num) {
 		this.usernumber = num.intValue();
 		this.id = id;
@@ -45,6 +50,14 @@ public class User {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public PlayerInformation getInfo() {
+		return info;
+	}
+
+	public void setInfo(PlayerInformation info) {
+		this.info = info;
 	}
 
 }
