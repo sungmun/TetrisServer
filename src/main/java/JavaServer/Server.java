@@ -148,6 +148,7 @@ public class Server extends Thread implements MessageType {
 		channelMessage(message);
 		RankingEvent(message);
 	}
+	@SuppressWarnings("unlikely-arg-type")
 	public void RankingEvent(SocketMessage message) throws IOException {
 		User user = new Gson().fromJson(message.getMessage(), User.class);
 		int ranking = -1;

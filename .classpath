@@ -16,6 +16,5 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/tjdans/Desktop/Programing Project/Project/장기프로젝트/개인프로젝트/다양한언어를 이용한 테트리스 만들기/JAVA/Git/Server/TetrisServer/mysql-connector-java-5.1.44/mysql-connector-java-5.1.44-bin.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
