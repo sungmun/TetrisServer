@@ -17,7 +17,7 @@ public class TetrisRankingDataBase {
 	public TetrisRankingDataBase() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			connection = DriverManager.getConnection("jdbc:mysql:localhost:3333/tetrisranking", "tjdans", "dkrak");
+			connection = DriverManager.getConnection("jdbc:mysql:localhost:3333/TetrisDataBase", "tjdans", "dkrak");
 			st = connection.createStatement();
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
