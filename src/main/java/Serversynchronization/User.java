@@ -21,6 +21,8 @@ public class User {
 		this.name = name;
 	}
 
+	public User() {
+	}
 	public void setUserNumber(Integer num) {
 		usernumber = num.intValue();
 	}

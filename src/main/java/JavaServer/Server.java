@@ -31,7 +31,7 @@ public class Server extends Thread implements MessageType {
 	User client = new User(null, null);
 	PrintWriter out;
 	BufferedReader in;
-	TetrisRankingDataBase database = new TetrisRankingDataBase();
+	TetrisRanking database = new TetrisRanking();
 	static int indexnum = 0;
 
 	public Server(Socket socket) throws IOException {
@@ -154,11 +154,6 @@ public class Server extends Thread implements MessageType {
 		int ranking = -1;
 		if(user.getInfo()==null) {
 			return;
-		}
-		try {
-			ranking=database.insertRankingSQL(user);
-		} catch (SQLException e) {
-			System.err.println("insertRanking Error");
 		}
 		send(new SocketMessage(RANK, ranking), list.get(client));
 		
