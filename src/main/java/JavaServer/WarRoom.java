@@ -5,7 +5,7 @@ import Serversynchronization.User;
 public class WarRoom {
 	User user1;
 	User user2;
-
+	boolean connencting=true;
 	public WarRoom(User user1, User user2) {
 		this.user1 = user1;
 		this.user2 = user2;

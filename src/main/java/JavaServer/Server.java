@@ -8,7 +8,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -22,8 +21,7 @@ import Serversynchronization.UsersList;
 
 public class Server extends Thread implements MessageType {
 
-	public static final int ServerPort = 8000;
-	public static final String ServerIP = "localhost";
+	public static final int ServerPort = 4160;
 
 	public static Vector<WarRoom> war_rooms = new Vector<>();
 	public static HashMap<Integer, Socket> list = new HashMap<>();
@@ -31,7 +29,6 @@ public class Server extends Thread implements MessageType {
 	User client = new User(null, null);
 	PrintWriter out;
 	BufferedReader in;
-	TetrisRanking database = new TetrisRanking();
 	static int indexnum = 0;
 
 	public Server(Socket socket) throws IOException {
@@ -146,18 +143,28 @@ public class Server extends Thread implements MessageType {
 
 	public void gameOverEvent(SocketMessage message) throws IOException {
 		channelMessage(message);
-		RankingEvent(message);
+		int index = searchindex(client);
+		if (war_rooms.get(index).connencting) {
+			war_rooms.get(index).connencting = false;
+		} else {
+			User user = war_rooms.get(index).opponentUser(client);
+			list.get(user.getUserNumber()).close();
+			this.close();
+		}
+
 	}
+
 	@SuppressWarnings("unlikely-arg-type")
 	public void RankingEvent(SocketMessage message) throws IOException {
 		User user = new Gson().fromJson(message.getMessage(), User.class);
 		int ranking = -1;
-		if(user.getInfo()==null) {
+		if (user.getInfo() == null) {
 			return;
 		}
 		send(new SocketMessage(RANK, ranking), list.get(client));
-		
+
 	}
+
 	public void onMessage(Socket client) throws JsonSyntaxException, IOException {
 
 		SocketMessage message = new Gson().fromJson(in.readLine(), SocketMessage.class);
