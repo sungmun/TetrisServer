@@ -11,20 +11,16 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Vector;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-
 import Serversynchronization.MessageType;
-import Serversynchronization.SocketMessage;
+import Serversynchronization.TotalJsonObject;
 import Serversynchronization.User;
-import Serversynchronization.UsersList;
 
-public class Server extends Thread implements MessageType {
+public class Server extends Thread {
 
 	public static final int ServerPort = 4160;
-
-	public static Vector<WarRoom> war_rooms = new Vector<>();
-	public static HashMap<Integer, Socket> list = new HashMap<>();
+	public static Vector<WarRoom> war_rooms = new Vector<WarRoom>();
+	public static HashMap<Integer, Socket> list = new HashMap<Integer, Socket>();
+	public static final String MessageTypeKey = MessageType.class.getSimpleName();
 
 	User client = new User(null, null);
 	PrintWriter out;
@@ -53,123 +49,173 @@ public class Server extends Thread implements MessageType {
 	@Override
 	public void run() {
 
-		while (true) {
-			try {
+		try {
+			while (!Thread.currentThread().isInterrupted()) {
 				onMessage(list.get(client.getUserNumber()));
-			} catch (JsonSyntaxException | IOException e) {
-				close();
-				System.out.println(e.getMessage());
-				break;
 			}
+		} finally {
+			System.out.println("Thread is dead!");
 		}
 	}
 
 	private void close() {
 
 		try {
+			this.interrupt();
 			in.close();
 			out.close();
 			list.remove(client.getUserNumber());
 			UsersList.delete(client);// 메모리에서 유저 삭제
-			broadCast(new SocketMessage(LOGOUT, client));
-		} catch (IOException | ArrayIndexOutOfBoundsException e) {
+			TotalJsonObject msgObject = new TotalJsonObject();
+			msgObject.addProperty(MessageType.class.getName(), MessageType.LOGOUT.toString());
+			msgObject.addProperty(User.class.getName(), TotalJsonObject.GsonConverter(client));
+			broadCast(msgObject.toString());
+		} catch (IOException e) {
 		}
 	}
 
-	public void send(SocketMessage message, Socket socket) throws IOException {
-		out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-		String msg = new Gson().toJson(message);
-		out.println(msg);
-		out.flush();
-		System.gc();
+	public void send(String message, Socket socket) {
+		try {
+			System.out.println("Server.send()");
+			System.out.println(message);
+			out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+			out.println(message);
+			out.flush();
+			System.gc();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	public void broadCast(SocketMessage message) throws IOException {
+	public void broadCast(String message) {
 		User[] list = UsersList.getList();
 		for (User user : list) {
 			send(message, Server.list.get(user.getUserNumber()));
 		}
 	}
 
-	public void loginEvent(SocketMessage message) throws IOException {
-		User user = new Gson().fromJson(message.getMessage(), User.class);
+	public void loginEvent(String message) {
+		TotalJsonObject msgObject = new TotalJsonObject(message);
+		String userStr = (String) msgObject.get(User.class.getSimpleName());
+
+		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 		user.setUserNumber(client.getUserNumber());
-		send(new SocketMessage(USER_SERIAL_NUM, user.getUserNumber()), list.get(user.getUserNumber()));
-		broadCast(new SocketMessage(LOGIN, user));// 다른유저에게 접속한 유저 정보 전달
-		send(new SocketMessage(USER_LIST_MESSAGE, UsersList.getList()), list.get(user.getUserNumber()));
+
+		TotalJsonObject userSerialJson = new TotalJsonObject();
+		userSerialJson.addProperty(MessageTypeKey, MessageType.USER_SERIAL_NUM.toString());
+		userSerialJson.addProperty(Integer.class.getSimpleName(), user.getUserNumber().toString());
+		send(userSerialJson.toString(), list.get(user.getUserNumber()));
+
+		TotalJsonObject userInfoJson = new TotalJsonObject();
+		userInfoJson.addProperty(MessageTypeKey, MessageType.LOGIN.toString());
+		userInfoJson.addProperty(User.class.getSimpleName(), TotalJsonObject.GsonConverter(user));
+		broadCast(userInfoJson.toString());// 다른유저에게 접속한 유저 정보 전달
+
+		TotalJsonObject usersInfoJson = new TotalJsonObject();
+		usersInfoJson.addProperty(MessageTypeKey, MessageType.USER_LIST_MESSAGE.toString());
+		usersInfoJson.addProperty(UsersList.getList().getClass().getSimpleName(),
+				TotalJsonObject.GsonConverter(UsersList.getList()));
+		send(usersInfoJson.toString(), list.get(user.getUserNumber()));
 		// 접속한 유저에게 다른 유저 정보 전달
 		UsersList.add(user);// 접속한 유저의 정보 저장
 		client = user;
 	}
 
-	public void logoutEvent() throws IOException {
+	public void logoutEvent() {
 		close();
 	}
 
-	public void userSelectingEvent(SocketMessage message) throws JsonSyntaxException, IOException {
-		User user = new Gson().fromJson(message.getMessage(), User.class);
+	public void userSelectingEvent(String message) {
+		TotalJsonObject msgObject = new TotalJsonObject(message);
+		String userStr = (String) msgObject.get(User.class.getName());
+		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 
-		message.changeMessageType(BE_CHOSEN);
+		msgObject.removeValue(MessageTypeKey);
+
+		msgObject.addProperty(MessageTypeKey, MessageType.BE_CHOSEN);
 
 		war_rooms.add(new WarRoom(client, user));
 		// user는 사용자의 정보이고, message.transformJSON()는 선택당한 유저이다
-		send(new SocketMessage(BE_CHOSEN, client), list.get(user.getUserNumber()));
+
+		TotalJsonObject msgJsonObject = new TotalJsonObject();
+		msgJsonObject.addProperty(MessageTypeKey, MessageType.BE_CHOSEN);
+		msgJsonObject.addProperty(User.class.getName(), TotalJsonObject.GsonConverter(client));
+		send(msgJsonObject.toString(), list.get(user.getUserNumber()));
 		// 선택당한 유저에게 선택을 당했다고 알려줌
 	}
 
-	public void warAcceptEvent(SocketMessage message) throws IOException {
+	public void warAcceptEvent(String message) {
 		warStartEvent();
 		channelMessage(message);
 	}
 
-	public void warStartEvent() throws IOException {
-		broadCast(new SocketMessage(WAR_START, client));
+	public void warStartEvent() {
+		TotalJsonObject msgJsonObject = new TotalJsonObject();
+		msgJsonObject.addProperty(MessageTypeKey, MessageType.BATTLE_START);
+		msgJsonObject.addProperty(User.class.getName(), client);
+		broadCast(msgJsonObject.toString());
 	}
 
-	public void warDenialEvent() throws IOException {
-		channelMessage(new SocketMessage(WAR_DENIAL, null));
+	public void warDenialEvent() {
+		TotalJsonObject msgObject = new TotalJsonObject();
+		msgObject.addProperty(MessageType.class.getName(), MessageType.BATTLE_DENIAL.toString());
+		channelMessage(msgObject.toString());
 	}
 
-	public void mapMessageEvent(SocketMessage message) throws IOException {
+	public void mapMessageEvent(String message)  {
 		channelMessage(message);
 	}
 
-	public void channelMessage(SocketMessage message) throws IOException {
+	public void channelMessage(String message) {
 		int index = searchindex(client);
 		User user = war_rooms.get(index).opponentUser(client);
 
 		send(message, list.get(user.getUserNumber()));
 	}
 
-	public void gameOverEvent(SocketMessage message) throws IOException {
+	public void gameOverEvent(String message) {
 		channelMessage(message);
 		int index = searchindex(client);
 		if (war_rooms.get(index).connencting) {
 			war_rooms.get(index).connencting = false;
 		} else {
 			User user = war_rooms.get(index).opponentUser(client);
-			list.get(user.getUserNumber()).close();
+			try {
+				list.get(user.getUserNumber()).close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			this.close();
 		}
 
 	}
 
-	@SuppressWarnings("unlikely-arg-type")
-	public void RankingEvent(SocketMessage message) throws IOException {
-		User user = new Gson().fromJson(message.getMessage(), User.class);
+	public void RankingEvent(String message) {
+		TotalJsonObject msgObject = new TotalJsonObject(message);
+		String userStr = (String) msgObject.get(User.class.getName());
+		User user = TotalJsonObject.GsonConverter(userStr, User.class);
+
 		int ranking = -1;
 		if (user.getInfo() == null) {
 			return;
 		}
-		send(new SocketMessage(RANK, ranking), list.get(client));
+		TotalJsonObject msgJsonObject = new TotalJsonObject();
+		msgJsonObject.addProperty(MessageTypeKey, MessageType.RANK);
+		msgJsonObject.addProperty(Integer.class.getName(), ranking);
+		send(msgJsonObject.toString(), list.get(user.getUserNumber()));
 
 	}
 
-	public void onMessage(Socket client) throws JsonSyntaxException, IOException {
-
-		SocketMessage message = new Gson().fromJson(in.readLine(), SocketMessage.class);
+	public void onMessage(Socket client) {
 		try {
-			switch (message.getMessageType()) {
+			System.out.println("Server.onMessage()");
+			String str=in.readLine();
+			System.out.println(str);
+			TotalJsonObject msgObject = new TotalJsonObject(str);
+			MessageType type = MessageType.valueOf((String) msgObject.get(MessageTypeKey));
+			String message = msgObject.toString();
+
+			switch (type) {
 			case RANK:
 				RankingEvent(message);
 				break;
@@ -185,13 +231,13 @@ public class Server extends Thread implements MessageType {
 			case USER_SELECTING:// 사용자가 유저를 선택후 선택한유저 정보 전달
 				userSelectingEvent(message);
 				break;
-			case WAR_ACCEPT:// 선택 당한 유저의 응답 여부
+			case BATTLE_ACCEPT:// 선택 당한 유저의 응답 여부
 				warAcceptEvent(message);
 				break;
-			case WAR_DENIAL:// 선택 당한 유저의 응답 여부
+			case BATTLE_DENIAL:// 선택 당한 유저의 응답 여부
 				warDenialEvent();
 				break;
-			case WAR_START:
+			case BATTLE_START:
 				warStartEvent();
 				break;
 			case SCORE_MESSAGE:
@@ -205,8 +251,9 @@ public class Server extends Thread implements MessageType {
 			default:
 				break;
 			}
-		} catch (NullPointerException e) {
-			System.err.println(e.getMessage());
+		} catch (NullPointerException | IOException e) {
+			e.printStackTrace();
+			close();
 		}
 	}
 

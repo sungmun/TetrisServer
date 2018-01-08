@@ -1,6 +1,8 @@
-package Serversynchronization;
+package JavaServer;
 
 import java.util.Vector;
+
+import Serversynchronization.User;
 
 public class UsersList {
 	private static Vector<User> list = new Vector<User>();
