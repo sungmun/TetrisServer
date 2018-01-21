@@ -18,7 +18,7 @@ import Serversynchronization.User;
 public class Server extends Thread {
 
 	public static final int ServerPort = 4160;
-	public static Vector<WarRoom> war_rooms = new Vector<WarRoom>();
+	public static Vector<WarRoom> battle_rooms = new Vector<WarRoom>();
 	public static HashMap<Integer, Socket> list = new HashMap<Integer, Socket>();
 	public static final String MessageTypeKey = MessageType.class.getSimpleName();
 
@@ -37,8 +37,8 @@ public class Server extends Thread {
 
 	public int searchindex(User user) {
 		int index = 0;
-		for (WarRoom warRoom : war_rooms) {
-			if (warRoom.equals(user)) {
+		for (WarRoom battleRoom : battle_rooms) {
+			if (battleRoom.equals(user)) {
 				return index;
 			}
 			index++;
@@ -67,8 +67,8 @@ public class Server extends Thread {
 			list.remove(client.getUserNumber());
 			UsersList.delete(client);// 메모리에서 유저 삭제
 			TotalJsonObject msgObject = new TotalJsonObject();
-			msgObject.addProperty(MessageType.class.getName(), MessageType.LOGOUT.toString());
-			msgObject.addProperty(User.class.getName(), TotalJsonObject.GsonConverter(client));
+			msgObject.addProperty(MessageTypeKey, MessageType.LOGOUT.toString());
+			msgObject.addProperty(User.class.getSimpleName(), TotalJsonObject.GsonConverter(client));
 			broadCast(msgObject.toString());
 		} catch (IOException e) {
 		}
@@ -127,48 +127,39 @@ public class Server extends Thread {
 
 	public void userSelectingEvent(String message) {
 		TotalJsonObject msgObject = new TotalJsonObject(message);
-		String userStr = (String) msgObject.get(User.class.getName());
+		String userStr = (String) msgObject.get(User.class.getSimpleName());
 		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 
-		msgObject.removeValue(MessageTypeKey);
-
-		msgObject.addProperty(MessageTypeKey, MessageType.BE_CHOSEN);
-
-		war_rooms.add(new WarRoom(client, user));
+		battle_rooms.add(new WarRoom(client, user));
 		// user는 사용자의 정보이고, message.transformJSON()는 선택당한 유저이다
 
 		TotalJsonObject msgJsonObject = new TotalJsonObject();
-		msgJsonObject.addProperty(MessageTypeKey, MessageType.BE_CHOSEN);
-		msgJsonObject.addProperty(User.class.getName(), TotalJsonObject.GsonConverter(client));
+		msgJsonObject.addProperty(MessageTypeKey, MessageType.BE_CHOSEN.toString());
+		msgJsonObject.addProperty(User.class.getSimpleName(), TotalJsonObject.GsonConverter(client));
 		send(msgJsonObject.toString(), list.get(user.getUserNumber()));
 		// 선택당한 유저에게 선택을 당했다고 알려줌
 	}
 
-	public void warAcceptEvent(String message) {
-		warStartEvent();
-		channelMessage(message);
-	}
-
-	public void warStartEvent() {
+	public void battleStartEvent() {
 		TotalJsonObject msgJsonObject = new TotalJsonObject();
-		msgJsonObject.addProperty(MessageTypeKey, MessageType.BATTLE_START);
-		msgJsonObject.addProperty(User.class.getName(), client);
+		msgJsonObject.addProperty(MessageTypeKey, MessageType.BATTLE_START.toString());
+		msgJsonObject.addProperty(User.class.getSimpleName(), TotalJsonObject.GsonConverter(client));
 		broadCast(msgJsonObject.toString());
 	}
 
-	public void warDenialEvent() {
+	public void battleDenialEvent() {
 		TotalJsonObject msgObject = new TotalJsonObject();
 		msgObject.addProperty(MessageType.class.getName(), MessageType.BATTLE_DENIAL.toString());
 		channelMessage(msgObject.toString());
 	}
 
-	public void mapMessageEvent(String message)  {
+	public void mapMessageEvent(String message) {
 		channelMessage(message);
 	}
 
 	public void channelMessage(String message) {
 		int index = searchindex(client);
-		User user = war_rooms.get(index).opponentUser(client);
+		User user = battle_rooms.get(index).opponentUser(client);
 
 		send(message, list.get(user.getUserNumber()));
 	}
@@ -176,10 +167,10 @@ public class Server extends Thread {
 	public void gameOverEvent(String message) {
 		channelMessage(message);
 		int index = searchindex(client);
-		if (war_rooms.get(index).connencting) {
-			war_rooms.get(index).connencting = false;
+		if (battle_rooms.get(index).connencting) {
+			battle_rooms.get(index).connencting = false;
 		} else {
-			User user = war_rooms.get(index).opponentUser(client);
+			User user = battle_rooms.get(index).opponentUser(client);
 			try {
 				list.get(user.getUserNumber()).close();
 			} catch (IOException e) {
@@ -192,7 +183,7 @@ public class Server extends Thread {
 
 	public void RankingEvent(String message) {
 		TotalJsonObject msgObject = new TotalJsonObject(message);
-		String userStr = (String) msgObject.get(User.class.getName());
+		String userStr = (String) msgObject.get(User.class.getSimpleName());
 		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 
 		int ranking = -1;
@@ -200,8 +191,8 @@ public class Server extends Thread {
 			return;
 		}
 		TotalJsonObject msgJsonObject = new TotalJsonObject();
-		msgJsonObject.addProperty(MessageTypeKey, MessageType.RANK);
-		msgJsonObject.addProperty(Integer.class.getName(), ranking);
+		msgJsonObject.addProperty(MessageTypeKey, MessageType.RANK.toString());
+		msgJsonObject.addProperty(Integer.class.getSimpleName(), ranking);
 		send(msgJsonObject.toString(), list.get(user.getUserNumber()));
 
 	}
@@ -209,7 +200,7 @@ public class Server extends Thread {
 	public void onMessage(Socket client) {
 		try {
 			System.out.println("Server.onMessage()");
-			String str=in.readLine();
+			String str = in.readLine();
 			System.out.println(str);
 			TotalJsonObject msgObject = new TotalJsonObject(str);
 			MessageType type = MessageType.valueOf((String) msgObject.get(MessageTypeKey));
@@ -231,14 +222,11 @@ public class Server extends Thread {
 			case USER_SELECTING:// 사용자가 유저를 선택후 선택한유저 정보 전달
 				userSelectingEvent(message);
 				break;
-			case BATTLE_ACCEPT:// 선택 당한 유저의 응답 여부
-				warAcceptEvent(message);
-				break;
 			case BATTLE_DENIAL:// 선택 당한 유저의 응답 여부
-				warDenialEvent();
+				battleDenialEvent();
 				break;
 			case BATTLE_START:
-				warStartEvent();
+				battleStartEvent();
 				break;
 			case SCORE_MESSAGE:
 			case LEVEL_MESSAGE:
