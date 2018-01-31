@@ -1,6 +1,8 @@
 package Serversynchronization;
 
-public class PlayerInformation {
+import java.io.Serializable;
+
+public class PlayerInformation implements Serializable{
 
 	private int level;
 	private int score;

@@ -1,34 +1,32 @@
 package Serversynchronization;
 
-public class User {
-	private int usernumber;
+import java.io.Serializable;
+import java.util.UUID;
+
+public class User implements Comparable<User>, Serializable {
+	private static final long serialVersionUID = 1L;
+	private UUID uuid;
 	private String id;
 	private String name;
 	private PlayerInformation info;
-	public User(String id, String name,int level,int score) {
-		this.id=id;
-		this.name=name;
-		info=new PlayerInformation(level, score);
+
+	public User(String id, String name, int level, int score) {
+		this(id, name);
+		info = new PlayerInformation(level, score);
 	}
-	public User(String id, String name, Integer num) {
-		this.usernumber = num.intValue();
-		this.id = id;
-		this.name = name;
+
+	public User(String id, String name, UUID uuid) {
+		this(id, name);
+		this.uuid = uuid;
 	}
 
 	public User(String id, String name) {
 		this.id = id;
 		this.name = name;
+		uuid = UUID.randomUUID();
 	}
 
 	public User() {
-	}
-	public void setUserNumber(Integer num) {
-		usernumber = num.intValue();
-	}
-
-	public Integer getUserNumber() {
-		return new Integer(usernumber);
 	}
 
 	public String getID() {
@@ -43,13 +41,6 @@ public class User {
 		return name;
 	}
 
-	public boolean equals(User user) {
-		if (this.usernumber == user.usernumber) {
-			return true;
-		}
-		return false;
-	}
-
 	public void setName(String name) {
 		this.name = name;
 	}
@@ -60,6 +51,23 @@ public class User {
 
 	public void setInfo(PlayerInformation info) {
 		this.info = info;
+	}
+
+	public UUID getUuid() {
+		return uuid;
+	}
+
+	public void setUuid(UUID uuid) {
+		this.uuid = uuid;
+	}
+
+	public boolean equals(User user) {
+		return (uuid.equals(user.uuid)) ? true : false;
+	}
+
+	public int compareTo(User user) {
+
+		return info.getScore() - user.info.getScore();
 	}
 
 }
