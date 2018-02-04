@@ -1,4 +1,4 @@
-package JavaServer;
+package Control;
 
 import Serversynchronization.User;
 

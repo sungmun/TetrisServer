@@ -1,4 +1,4 @@
-package JavaServer;
+package Control;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.Vector;
 
+import Model.MessageProcessing;
+import Model.Ranking;
 import Serversynchronization.MessageType;
 import Serversynchronization.TotalJsonObject;
 import Serversynchronization.User;
@@ -23,7 +25,7 @@ public class Server extends Thread {
 	public static MessageProcessing processing = new MessageProcessing();
 	public static Ranking ranking=new Ranking();
 	
-	User client = new User(null, null);
+	public User client = new User(null, null);
 	PrintWriter out;
 	BufferedReader in;
 
@@ -31,6 +33,7 @@ public class Server extends Thread {
 		System.out.println("생성자");
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		list.put(client.getUuid(), socket);
+		
 	}
 
 	@Override
@@ -85,12 +88,17 @@ public class Server extends Thread {
 		return -1;
 	}
 
-	public static void channelMessage(Server server, String message) {
+	public static boolean channelMessage(Server server, String message) {
 		User client = server.client;
 		int index = searchindex(client);
+		if(index==-1) {
+			return false;
+		}
+		
 		User user = battle_rooms.get(index).opponentUser(client);
-
+		
 		server.send(message, list.get(user.getUuid()));
+		return true;
 	}
 
 	public void onMessage(Socket client) {
@@ -112,6 +120,8 @@ public class Server extends Thread {
 			case LOGIN:
 				processing.loginEvent(this, message);
 				break;
+			case USER_LIST_MESSAGE:
+				processing.userListEvent(this);
 			case LOGOUT:
 				close();
 				break;

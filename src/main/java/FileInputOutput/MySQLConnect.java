@@ -1,4 +1,4 @@
-package JavaServer;
+package FileInputOutput;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,7 +9,7 @@ import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
-public class MySQLConnect {
+public class  MySQLConnect<T>{
 	Connection connection = null;
 	Statement stat = null;
 
@@ -40,7 +40,7 @@ public class MySQLConnect {
 		return executeSQL(sql);
 	}
 
-	public LinkedList<LinkedHashMap<String, String>> selectSQL(String sql) throws SQLException {
+	final public LinkedList<LinkedHashMap<String, String>> selectSQL(String sql) throws SQLException {
 		return executeQuery(sql);
 	}
 

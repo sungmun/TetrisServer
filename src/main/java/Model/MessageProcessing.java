@@ -1,7 +1,10 @@
-package JavaServer;
+package Model;
 
 import java.util.UUID;
 
+import Control.Server;
+import Control.UsersList;
+import Control.WarRoom;
 import Serversynchronization.MessageType;
 import Serversynchronization.TotalJsonObject;
 import Serversynchronization.User;
@@ -17,13 +20,15 @@ public class MessageProcessing {
 		user.setUuid(server.client.getUuid());
 
 		sendSerialNum(server, user);
-		broadSendUserInfo(server, user);
-		sendListInfo(server, user);
-
-		UsersList.add(user);// 접속한 유저의 정보 저장
+		
 		return user;
 	}
-
+	public void userListEvent(Server server){
+		User user=server.client;
+		broadSendUserInfo(server, user);
+		sendListInfo(server, user);
+		UsersList.add(user);// 접속한 유저의 정보 저장
+	}
 	private void sendSerialNum(Server server, User user) {
 		TotalJsonObject userSerialJson = new TotalJsonObject();
 		userSerialJson.addProperty(MessageTypeKey, MessageType.USER_SERIAL_NUM.toString());
@@ -60,12 +65,10 @@ public class MessageProcessing {
 	}
 
 	public void gameOverEvent(Server server, String message) {
-		Server.channelMessage(server, message);
-		TotalJsonObject jsonObject=new  TotalJsonObject(message);
-		User user=TotalJsonObject.GsonConverter(jsonObject.get("User").toString(), User.class);
-
-		Server.ranking.insertRanking(user);
+		TotalJsonObject jsonObject = new TotalJsonObject(message);
+		User user = TotalJsonObject.GsonConverter(jsonObject.get("User").toString(), User.class);
 		
+
 		rankingEvent(server, message);
 	}
 
@@ -100,27 +103,40 @@ public class MessageProcessing {
 	public void mapMessageEvent(Server server, String message) {
 		Server.channelMessage(server, message);
 	}
-	
-	public void rankingEvent(Server server,String message) {
-		TotalJsonObject msgObject = new TotalJsonObject(message);
-		String userStr = (String) msgObject.get(User.class.getSimpleName());
-		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 
-		int bobRank=server.ranking.searchBOBRanking(user.getUuid());
-		if(bobRank!=-1) {
-			TotalJsonObject msgJsonObject = new TotalJsonObject();
-			msgJsonObject.addProperty(MessageProcessing.MessageTypeKey, MessageType.RANK.toString());
-			msgJsonObject.addProperty("RankingType", "BestOfBest");
-			msgJsonObject.addProperty(int.class.getSimpleName(), bobRank);
-			server.send(msgJsonObject.toString(), Server.list.get(user.getUuid()));	
+	public void rankingEvent(Server server, String message) {
+		TotalJsonObject bestOfBest = null;
+		TotalJsonObject daily =null;
+		
+		Ranking rank = Server.ranking;
+		User user=server.client;
+		
+		if(Server.channelMessage(server, message)) {
+			sendSerialNum(server, user);
 		}
-		int dailyRank=server.ranking.searchDailyRanking(user.getUuid());
-		if(dailyRank!=-1) {
-			TotalJsonObject msgJsonObject = new TotalJsonObject();
-			msgJsonObject.addProperty(MessageProcessing.MessageTypeKey, MessageType.RANK.toString());
-			msgJsonObject.addProperty("RankingType", "Daily");
-			msgJsonObject.addProperty(int.class.getSimpleName(), dailyRank);
-			server.send(msgJsonObject.toString(), Server.list.get(user.getUuid()));	
+
+		Server.ranking.insertRanking(user);
+		
+		daily= createRankMessage(rank.dailyRank.searchRanking(user.getUuid()), "DailyRanking");
+		bestOfBest = createRankMessage(rank.bestOfBestRank.searchRanking(user.getUuid()), "BestOfBestRanking");
+
+		if (daily == null) {
+			return;
+		}else if(bestOfBest != null) {
+			server.send(bestOfBest.toString(), Server.list.get(user.getUuid()));
 		}
+		server.send(daily.toString(), Server.list.get(user.getUuid()));
+
+	}
+
+	private TotalJsonObject createRankMessage(int ranking, String RankingType) {
+		if (ranking == -1) {
+			return null;
+		}
+		TotalJsonObject msgJsonObject = new TotalJsonObject();
+		msgJsonObject.addProperty(MessageProcessing.MessageTypeKey, MessageType.RANK.toString());
+		msgJsonObject.addProperty("RankingType", RankingType);
+		msgJsonObject.addProperty(int.class.getSimpleName(), ranking);
+		return msgJsonObject;
 	}
 }

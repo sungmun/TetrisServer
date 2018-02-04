@@ -1,4 +1,4 @@
-package JavaServer;
+package FileInputOutput;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;

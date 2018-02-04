@@ -1,8 +1,10 @@
-package JavaServer;
+package Model;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import Control.Server;
 
 public class MainThread {
 	public static void main(String[] args) {
@@ -13,7 +15,7 @@ public class MainThread {
 				@Override
 				public void run() {
 					super.run();
-					Server.ranking.DailyRankingRegistration();
+					Server.ranking.dailyRank.RankingRegistration();
 				}
 			});
 			while (true) {

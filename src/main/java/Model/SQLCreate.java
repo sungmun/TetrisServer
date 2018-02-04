@@ -1,4 +1,4 @@
-package JavaServer;
+package Model;
 
 public class SQLCreate {
 	static class Delete {
