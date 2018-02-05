@@ -66,6 +66,15 @@ public class MessageProcessing {
 	}
 
 	public void gameOverEvent(Server server, String message) {
+		TotalJsonObject jsonObject =new TotalJsonObject(message);
+		String userStr=(String) jsonObject.get(User.class.getName());
+		if(userStr==null) {
+			return;
+		}
+		
+		server.client=TotalJsonObject.GsonConverter(userStr, User.class);
+		rankingEvent(server);
+		
 	}
 
 	public void userSelectingEvent(Server server, String message) {
@@ -100,17 +109,13 @@ public class MessageProcessing {
 		Server.channelMessage(server, message);
 	}
 
-	public void rankingEvent(Server server, String message) {
+	public void rankingEvent(Server server) {
 		TotalJsonObject bestOfBest = null;
 		TotalJsonObject daily =null;
 		
 		Ranking rank = Server.ranking;
 		User user=server.client;
 		
-		if(Server.channelMessage(server, message)) {
-			sendSerialNum(server, user);
-		}
-
 		Server.ranking.insertRanking(user);
 		
 		daily= createRankMessage(rank.dailyRank.searchRanking(user.getUuid()), "DailyRanking");

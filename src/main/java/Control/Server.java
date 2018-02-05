@@ -122,6 +122,7 @@ public class Server extends Thread {
 				break;
 			case USER_LIST_MESSAGE:
 				processing.userListEvent(this);
+				break;
 			case LOGOUT:
 				close();
 				break;
