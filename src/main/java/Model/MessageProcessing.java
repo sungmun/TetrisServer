@@ -18,6 +18,7 @@ public class MessageProcessing {
 		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 
 		user.setUuid(server.client.getUuid());
+		server.client=user;
 
 		sendSerialNum(server, user);
 		
@@ -65,11 +66,6 @@ public class MessageProcessing {
 	}
 
 	public void gameOverEvent(Server server, String message) {
-		TotalJsonObject jsonObject = new TotalJsonObject(message);
-		User user = TotalJsonObject.GsonConverter(jsonObject.get("User").toString(), User.class);
-		
-
-		rankingEvent(server, message);
 	}
 
 	public void userSelectingEvent(Server server, String message) {

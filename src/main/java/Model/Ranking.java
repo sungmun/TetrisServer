@@ -91,6 +91,7 @@ public class Ranking {
 			if (!(serialnumber instanceof UUID)) {
 				return -1;
 			}
+			searchRanking();
 			Iterator<LinkedHashMap<String, String>> iter = rank.iterator();
 			for (int i = 1; iter.hasNext(); i++) {
 				if (iter.next().get("serialnumber").equals(serialnumber.toString())) {
