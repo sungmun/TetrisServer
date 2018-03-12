@@ -18,18 +18,20 @@ public class MessageProcessing {
 		User user = TotalJsonObject.GsonConverter(userStr, User.class);
 
 		user.setUuid(server.client.getUuid());
-		server.client=user;
+		server.client = user;
 
 		sendSerialNum(server, user);
-		
+
 		return user;
 	}
-	public void userListEvent(Server server){
-		User user=server.client;
+
+	public void userListEvent(Server server) {
+		User user = server.client;
 		broadSendUserInfo(server, user);
 		sendListInfo(server, user);
 		UsersList.add(user);// 접속한 유저의 정보 저장
 	}
+
 	private void sendSerialNum(Server server, User user) {
 		TotalJsonObject userSerialJson = new TotalJsonObject();
 		userSerialJson.addProperty(MessageTypeKey, MessageType.USER_SERIAL_NUM.toString());
@@ -66,15 +68,15 @@ public class MessageProcessing {
 	}
 
 	public void gameOverEvent(Server server, String message) {
-		TotalJsonObject jsonObject =new TotalJsonObject(message);
-		String userStr=(String) jsonObject.get(User.class.getName());
-		if(userStr==null) {
+		TotalJsonObject jsonObject = new TotalJsonObject(message);
+		String userStr = (String) jsonObject.get(User.class.getName());
+		if (userStr == null) {
 			return;
 		}
-		
-		server.client=TotalJsonObject.GsonConverter(userStr, User.class);
+
+		server.client = TotalJsonObject.GsonConverter(userStr, User.class);
 		rankingEvent(server);
-		
+
 	}
 
 	public void userSelectingEvent(Server server, String message) {
@@ -110,20 +112,20 @@ public class MessageProcessing {
 	}
 
 	public void rankingEvent(Server server) {
-		TotalJsonObject bestOfBest = null;
-		TotalJsonObject daily =null;
-		
 		Ranking rank = Server.ranking;
-		User user=server.client;
-		
+		User user = server.client;
+
 		Server.ranking.insertRanking(user);
 		
-		daily= createRankMessage(rank.dailyRank.searchRanking(user.getUuid()), "DailyRanking");
+		TotalJsonObject daily = null;
+		daily = createRankMessage(rank.dailyRank.searchRanking(user.getUuid()), "DailyRanking");
+		
+		TotalJsonObject bestOfBest = null;
 		bestOfBest = createRankMessage(rank.bestOfBestRank.searchRanking(user.getUuid()), "BestOfBestRanking");
-
+		
 		if (daily == null) {
 			return;
-		}else if(bestOfBest != null) {
+		} else if (bestOfBest != null) {
 			server.send(bestOfBest.toString(), Server.list.get(user.getUuid()));
 		}
 		server.send(daily.toString(), Server.list.get(user.getUuid()));
@@ -134,6 +136,7 @@ public class MessageProcessing {
 		if (ranking == -1) {
 			return null;
 		}
+		
 		TotalJsonObject msgJsonObject = new TotalJsonObject();
 		msgJsonObject.addProperty(MessageProcessing.MessageTypeKey, MessageType.RANK.toString());
 		msgJsonObject.addProperty("RankingType", RankingType);

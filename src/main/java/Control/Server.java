@@ -112,7 +112,7 @@ public class Server extends Thread {
 
 			switch (type) {
 			case RANK:
-				processing.rankingEvent(this, message);
+				processing.rankingEvent(this);
 				break;
 			case GAMEOVER_MESSAGE:
 				processing.gameOverEvent(this, message);
