@@ -19,16 +19,12 @@ public class MainThread {
 				}
 			});
 			while (true) {
-				try {
-					Socket socket = serverSocket.accept();
-					System.out.println("Accept");
-					Thread server = new Server(socket);
-					server.start();
-				} catch (NullPointerException e) {
-				}
+				Socket socket = serverSocket.accept();
+				System.out.println("Accept");
+				Thread server = new Server(socket);
+				server.start();
 			}
 		} catch (IOException e) {
 		}
-		
 	}
 }
