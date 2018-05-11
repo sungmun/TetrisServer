@@ -12,11 +12,49 @@ import Serversynchronization.User;
 public class MessageProcessing {
 	public final static String MessageTypeKey = MessageType.class.getSimpleName();
 
-	public User loginEvent(Server server, String message) {
+	public void MessageClassification(String message,Server server) {
 		TotalJsonObject msgObject = new TotalJsonObject(message);
-		String userStr = (String) msgObject.get(User.class.getSimpleName());
-		User user = TotalJsonObject.GsonConverter(userStr, User.class);
-
+		MessageType type = MessageType.valueOf((String) msgObject.get(MessageProcessing.MessageTypeKey));
+		String messagesStr = msgObject.toString();
+		switch (type) {
+		case RANK:
+			rankingEvent(server);
+			break;
+		case GAMEOVER_MESSAGE:
+			gameOverEvent(server, message);
+			break;
+		case LOGIN:
+			loginEvent(server, (User) msgObject.getoOject(User.class));
+			break;
+		case USER_LIST_MESSAGE:
+			userListEvent(server);
+			break;
+		case LOGOUT:
+			server.close();
+			break;
+		case USER_SELECTING:// 사용자가 유저를 선택후 선택한유저 정보 전달
+			userSelectingEvent(server, message);
+			break;
+		case BATTLE_DENIAL:// 선택 당한 유저의 응답 여부
+			battleDenialEvent(server);
+			break;
+		case BATTLE_START:
+			battleStartEvent(server);
+			break;
+		case SCORE_MESSAGE:
+		case LEVEL_MESSAGE:
+		case SAVE_BLOCK_MESSAGE:
+		case NEXT_BLOCK_MESSAGE:
+		case MAP_MESSAGE:
+		case USER_MESSAGE:
+			server.channelMessage(message);
+			break;
+		default:
+			break;
+		}
+	}
+	
+	public User loginEvent(Server server, User user) {
 		user.setUuid(server.client.getUuid());
 		server.client=user;
 
@@ -77,11 +115,7 @@ public class MessageProcessing {
 		
 	}
 
-	public void userSelectingEvent(Server server, String message) {
-		TotalJsonObject msgObject = new TotalJsonObject(message);
-		String userStr = (String) msgObject.get(User.class.getSimpleName());
-		User user = TotalJsonObject.GsonConverter(userStr, User.class);
-
+	public void userSelectingEvent(Server server, User user) {
 		Server.battle_rooms.add(new WarRoom(server.client, user));
 		// user는 사용자의 정보이고, message.transformJSON()는 선택당한 유저이다
 
@@ -102,11 +136,11 @@ public class MessageProcessing {
 	public void battleDenialEvent(Server server) {
 		TotalJsonObject msgObject = new TotalJsonObject();
 		msgObject.addProperty(MessageType.class.getName(), MessageType.BATTLE_DENIAL.toString());
-		Server.channelMessage(server, msgObject.toString());
+		server.channelMessage(msgObject.toString());
 	}
 
 	public void mapMessageEvent(Server server, String message) {
-		Server.channelMessage(server, message);
+		server.channelMessage(message);
 	}
 
 	public void rankingEvent(Server server) {
