@@ -45,7 +45,9 @@ public class TotalJsonObject {
 			e.printStackTrace();
 		}
 	}
-
+	public <T> void addSimpleProperty(T object) {
+		addProperty(T.get, value);
+	}
 	public Object get(String key) {
 		return object.get(key);
 	}
@@ -53,4 +55,8 @@ public class TotalJsonObject {
 	public String getAsString() {
 		return toString();
 	}
+	public Object getoOject(Class<?> typeof) {
+		return TotalJsonObject.GsonConverter((String) this.get(typeof.getSimpleName()), typeof);
+	}
+	
 }
